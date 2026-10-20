@@ -180,6 +180,59 @@ def _looks_like_combo(name: str) -> bool:
     return any(hint in name for hint in COMBO_HINTS)
 
 
+def _compact_menu(menu: dict) -> dict:
+    """只保留求解需要的字段。
+
+    原始 query-meals 返回里带着商品图、标签、随单购卡信息等大量无关内容，
+    单店缓存能到 1.2MB。压掉冗余后体积降到几十 KB，便于提交到仓库，
+    也让评审 clone 后能直接跑 demo 而不必先申请 Token。
+    """
+    data = menu.get("data") or {}
+    meals = {
+        code: {
+            "name": entry.get("name"),
+            "currentPrice": entry.get("currentPrice"),
+            "originalPrice": entry.get("originalPrice"),
+            "discountType": entry.get("discountType"),
+            "withOrder": entry.get("withOrder"),
+        }
+        for code, entry in (data.get("meals") or {}).items()
+    }
+    categories = [
+        {
+            "name": cat.get("name"),
+            "meals": [{"code": m.get("code")} for m in (cat.get("meals") or [])],
+        }
+        for cat in (data.get("categories") or [])
+    ]
+    return {"success": True, "code": 200, "data": {"categories": categories, "meals": meals}}
+
+
+def _compact_detail(detail: dict) -> dict:
+    """只保留拆解套餐所需的 rounds 结构。
+
+    每个套餐的 choices 动辄 60+ 项，每项还挂着 modification（特调选项）
+    和图片链接——这些对营养计算毫无用处，却占了绝大部分体积。
+    """
+    d = detail.get("data") or detail
+    rounds = []
+    for rnd in d.get("rounds") or []:
+        rounds.append({
+            "name": rnd.get("name"),
+            "choices": [
+                {
+                    "code": c.get("code"),
+                    "name": c.get("name"),
+                    "quantity": c.get("quantity"),
+                    "isDefault": c.get("isDefault"),
+                    "diffPrice": c.get("diffPrice"),
+                }
+                for c in (rnd.get("choices") or [])
+            ],
+        })
+    return {"code": d.get("code"), "name": d.get("name"), "rounds": rounds}
+
+
 def fetch_store(
     client: McpClient,
     store_code: str,
@@ -187,6 +240,7 @@ def fetch_store(
     be_type: int = 1,
     workers: int = 6,
     fetch_all_details: bool = False,
+    compact: bool = True,
 ) -> dict:
     """抓取门店菜单，并为疑似套餐的商品抓取详情。"""
     menu = client.call_tool(
@@ -229,7 +283,7 @@ def fetch_store(
         for code, detail in pool.map(work, targets):
             done += 1
             if detail:
-                details[code] = detail
+                details[code] = _compact_detail(detail) if compact else detail
             if done % 10 == 0:
                 print(f"  进度 {done}/{len(targets)}", flush=True)
             time.sleep(0.05)  # 轻微限速，避免触发风控
@@ -239,7 +293,7 @@ def fetch_store(
         "orderType": order_type,
         "beType": be_type,
         "fetchedAt": datetime.now().isoformat(timespec="seconds"),
-        "menu": menu,
+        "menu": _compact_menu(menu) if compact else menu,
         "details": details,
     }
 
@@ -252,6 +306,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", required=True, help="输出 JSON 路径")
     parser.add_argument("--workers", type=int, default=6, help="并发数")
     parser.add_argument("--all-details", action="store_true", help="对所有商品都查详情")
+    parser.add_argument("--full", action="store_true",
+                        help="保留完整原始返回（体积大，默认只存求解所需字段）")
     parser.add_argument("--token", default=None, help="MCP Token，默认读环境变量 MCD_MCP_TOKEN")
     args = parser.parse_args(argv)
 
@@ -270,6 +326,7 @@ def main(argv: list[str] | None = None) -> int:
             be_type=args.be_type,
             workers=args.workers,
             fetch_all_details=args.all_details,
+            compact=not args.full,
         )
     except McpError as exc:
         print(f"抓取失败: {exc}", file=sys.stderr)
