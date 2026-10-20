@@ -24,7 +24,7 @@
 ## 效果
 
 ```
-$ python scripts/cli.py plan --menu examples/store_3500027.json \
+$ python scripts/cli.py plan --menu examples/demo_store.json \
     --weight 70 --height 175 --age 28 --sex male \
     --goal cut --meal breakfast --budget 30
 
@@ -97,10 +97,12 @@ python scripts/fetch_mcp.py --store 3500027 --out examples/store_3500027.json
 
 会抓取菜单和所有套餐的拆解详情，落盘缓存。之后求解全部读本地文件，不再请求网络。
 
+> 仓库里已内置 `examples/demo_store.json`（真实门店数据，保留 6 份套餐详情），**没申请到 Token 也能直接跳过这一步跑通全流程**。需要完整覆盖时再执行上面的命令。
+
 ### 3. 出方案
 
 ```bash
-python scripts/cli.py plan --menu examples/store_3500027.json \
+python scripts/cli.py plan --menu examples/demo_store.json \
     --weight 70 --height 175 --age 28 --sex male \
     --goal cut --meal breakfast --budget 30 --top 3
 ```
@@ -119,7 +121,7 @@ python scripts/cli.py plan --menu examples/store_3500027.json \
 ### 4. 检查数据覆盖率
 
 ```bash
-python scripts/cli.py audit --menu examples/store_3500027.json
+python scripts/cli.py audit --menu examples/demo_store.json
 ```
 
 会告诉你这个门店有多少餐品的营养能对上、哪些对不上。**先看这个再信方案**——覆盖率低说明这家店的菜单结构和你预期的不一样。
@@ -189,7 +191,7 @@ list-nutrition-foods ─► 营养表（中文品名索引）
 
 ## 数据准确性
 
-不粉饰，实测数据如下（合肥新地购物中心餐厅，2026-10-20）：
+不粉饰，实测数据如下（合肥新地购物中心餐厅，2026-10-20，**完整抓取 29 份套餐详情**；仓库内置的 `demo_store.json` 只保留 6 份，覆盖率会低一些）：
 
 | 指标 | 数值 |
 |---|---|
@@ -240,7 +242,9 @@ mcd-macro-coach/
 │   └── nutrition_raw.tsv        158 条官方营养数据快照
 ├── examples/
 │   ├── menu_sample.json         菜单样例（无套餐详情）
-│   └── store_3500027.json       完整门店缓存（含 29 份套餐详情）
+│   ├── demo_store.json          演示数据（真实门店，6 份套餐详情，可直接跑）
+│   ├── demo_plan.txt            方案输出样例
+│   └── demo_audit.txt           覆盖率审计样例
 └── tests/
     └── test_core.py             21 个单元测试
 ```

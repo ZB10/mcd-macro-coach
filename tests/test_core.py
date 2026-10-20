@@ -24,7 +24,7 @@ from nutrition import Nutrition, NutritionTable, normalize  # noqa: E402
 from optimizer import solve  # noqa: E402
 from tdee import Profile, basal_metabolic_rate, compute_targets  # noqa: E402
 
-BUNDLE_PATH = ROOT / "examples" / "store_3500027.json"
+BUNDLE_PATH = ROOT / "examples" / "demo_store.json"
 
 
 class TestNormalize(unittest.TestCase):

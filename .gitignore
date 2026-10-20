@@ -14,3 +14,6 @@ mcp.json
 _debug_*.json
 *.log
 .DS_Store
+
+# 完整门店缓存不入库：体积大且菜单会变，需要时用 fetch_mcp.py 重新生成
+examples/store_*.json
