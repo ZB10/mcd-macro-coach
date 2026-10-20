@@ -1,0 +1,16 @@
+# 忽略 Python 缓存
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+
+# 忽略本地凭证与个人数据
+.env
+*.token
+mcp.json
+
+# 忽略临时调试产物
+_debug_*.json
+*.log
+.DS_Store
